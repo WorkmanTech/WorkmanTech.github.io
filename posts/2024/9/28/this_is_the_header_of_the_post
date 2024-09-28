@@ -14,29 +14,22 @@
     <main id="main" role="main">
       <h1>Workman.Tech 👋🏻 Hello World</h1>
       <article role="article" class="post">
-        <h1 id="header">
-          Let&apos;s Talk About Tech
+        <p>
+          <a href="/"><- Back</a>
+        </p>
+        <h1 id="hey-there-the-names-jasmin-no-e-please">
+          This is the header of the post
         </h1>
-        <section id="body">
-          <p>
-            Here are some things that I&apos;ve been kicking around in my head that I thought were interesting enough to
-            write down and share with the world.
-          </p>
-        </section>
-
-        <section id="posts">
-
-        </section>
-        <strong>2024</strong>
-        <ul>
-          <li><a href="posts/2024/9/28/this_is_the_header_of_the_post">This is the header of the post</a> &mdash; September 28th</li>
-        </ul>
+        <p>
+          What's going on. Check out this post
+        </p>
       </article>
     </main>
 
     <footer class="footer" role="contentinfo">
       <small> © Ryan Workman - 2024 </small>
     </footer>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    <script></script>
   </body>
 </html>
