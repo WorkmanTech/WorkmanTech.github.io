@@ -48,6 +48,8 @@ Dependencies: `markdown-it` and `gray-matter`. That's it.
 
 ## Commands
 
+- `npm run dev` — local preview at <http://localhost:3000> (wraps
+  `python3 -m http.server 3000`; needs Python 3 on `PATH`).
 - `npm run build` — render everything.
 - `npm run clean` — remove generated theme directories (only directories
   whose HTML files all start with the generated marker are touched) and
