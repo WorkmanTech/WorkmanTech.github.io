@@ -5,7 +5,8 @@
   "description": "Static site build for workman.tech — markdown posts to HTML, served by GitHub Pages.",
   "scripts": {
     "build": "node build.js",
-    "clean": "node build.js --clean"
+    "clean": "node build.js --clean",
+    "dev": "python3 -m http.server 3000"
   },
   "engines": {
     "node": ">=18"
