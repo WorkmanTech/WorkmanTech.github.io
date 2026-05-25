@@ -29,6 +29,20 @@ const md = new MarkdownIt({
   typographer: true,
 });
 
+// Open links authored in post markdown in a new tab. This applies ONLY to
+// links written in the .md source — the site's own navigation links (back
+// links, theme/post-list links) are built as plain strings elsewhere and
+// stay in the same tab. rel="noopener" is the required security partner for
+// target="_blank" (blocks reverse tabnabbing).
+const defaultLinkOpen =
+  md.renderer.rules.link_open ||
+  ((tokens, idx, options, env, self) => self.renderToken(tokens, idx, options));
+md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+  tokens[idx].attrSet("target", "_blank");
+  tokens[idx].attrSet("rel", "noopener");
+  return defaultLinkOpen(tokens, idx, options, env, self);
+};
+
 // ---------- helpers ----------
 
 const FILENAME_RE = /^(\d{4})-(\d{2})-(\d{2})-([a-z0-9][a-z0-9-]*)\.md$/i;
@@ -210,12 +224,20 @@ function renderPostBody(post) {
   return md.render(post.bodyMarkdown);
 }
 
+function renderTagPills(tags) {
+  if (!tags || tags.length === 0) return "";
+  const pills = tags
+    .map((t) => `<span class="tag">${escapeHtml(t)}</span>`)
+    .join("");
+  return `<span class="tags">${pills}</span>`;
+}
+
 function themeAndTagsLine(post) {
   const themeLink = `<a href="/${post.themeSlug}/">${escapeHtml(
     post.themeDisplay,
   )}</a>`;
   if (post.tags.length === 0) return themeLink;
-  return `${themeLink} · tags: ${post.tags.map(escapeHtml).join(", ")}`;
+  return `${themeLink} · ${renderTagPills(post.tags)}`;
 }
 
 function canonicalUrlForPost(post) {
@@ -250,9 +272,7 @@ function renderThemeListing(template, themeSlug, posts) {
     .map((p) => {
       const href = `/${p.themeSlug}/${p.filename}`;
       const tagLine =
-        p.tags.length > 0
-          ? `<br><small>tags: ${p.tags.map(escapeHtml).join(", ")}</small>`
-          : "";
+        p.tags.length > 0 ? `<br>${renderTagPills(p.tags)}` : "";
       const desc = p.description
         ? `<br><small>${escapeHtml(p.description)}</small>`
         : "";
@@ -290,9 +310,7 @@ function renderHomepagePostList(byTheme) {
       .map((p) => {
         const href = `/${p.themeSlug}/${p.filename}`;
         const tagLine =
-          p.tags.length > 0
-            ? ` <small>(${p.tags.map(escapeHtml).join(", ")})</small>`
-            : "";
+          p.tags.length > 0 ? ` ${renderTagPills(p.tags)}` : "";
         return (
           `          <li>\n` +
           `            <a href="${escapeAttr(href)}">${escapeHtml(p.title)}</a>` +
