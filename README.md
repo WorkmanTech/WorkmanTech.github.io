@@ -11,7 +11,7 @@ Source for Ryan Workman's personal blog at [workman.tech](https://workman.tech).
 
 ## Local setup
 
-1. Install Node.js 18 or newer.
+1. Install Node.js 22.17 or newer (required by the `html-validate` lint tooling; CI runs Node 24).
 2. `npm install`.
 3. To preview the site, run `npm run dev` and visit <http://localhost:3000>. This is a thin wrapper around `python3 -m http.server 3000` — it serves the repo root over HTTP so absolute paths like `/css/style.css` and `/images/...` resolve correctly. Requires Python 3 on your `PATH`.
 

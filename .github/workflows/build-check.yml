@@ -16,16 +16,16 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
 
       - run: npm ci
 
-      - name: Build the site
-        run: npm run build
-
       - name: Lint generated HTML
         run: npm run lint:html
+
+      - name: Build the site
+        run: npm run build
 
       - name: Fail if the committed output is stale
         run: |
