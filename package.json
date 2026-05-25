@@ -6,7 +6,9 @@
   "scripts": {
     "build": "node build.js",
     "clean": "node build.js --clean",
-    "dev": "python3 -m http.server 3000"
+    "dev": "python3 -m http.server 3000",
+    "lint:html": "html-validate index.html '*/*.html'",
+    "lint:fix": "prettier --write ."
   },
   "engines": {
     "node": ">=18"
@@ -14,5 +16,9 @@
   "dependencies": {
     "gray-matter": "^4.0.3",
     "markdown-it": "^14.1.0"
+  },
+  "devDependencies": {
+    "html-validate": "^11.3.0",
+    "prettier": "^3.8.3"
   }
 }
