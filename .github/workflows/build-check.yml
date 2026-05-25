@@ -1,0 +1,40 @@
+name: Verify build is up to date
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Lint generated HTML
+        run: npm run lint:html
+
+      - name: Build the site
+        run: npm run build
+
+      - name: Fail if the committed output is stale
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Committed output is out of date with the source. Run 'npm run build' locally and commit the result."
+            echo "Changed files:"
+            git status --porcelain
+            echo "Diff:"
+            git diff
+            exit 1
+          fi
+          echo "Committed output matches a fresh build."

@@ -1,0 +1,16 @@
+node_modules
+package-lock.json
+
+# Generated favicon assets (created by an external tool, not hand-maintained).
+images
+
+# Generated theme output is formatted by build.js, not by lint:fix.
+# (Leaving it here is harmless since the output is already Prettier-clean,
+# but build.js is the source of truth for it.)
+
+# Hand-authored post prose. build.js renders + formats the HTML output;
+# leave the markdown sources alone.
+_posts
+
+# Local, gitignored personal layer (SOUL.md, skills, drafts).
+.claude

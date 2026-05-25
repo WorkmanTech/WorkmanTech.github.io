@@ -10,6 +10,7 @@ const fs = require("fs");
 const path = require("path");
 const matter = require("gray-matter");
 const MarkdownIt = require("markdown-it");
+const prettier = require("prettier");
 
 const ROOT = __dirname;
 const POSTS_DIR = path.join(ROOT, "_posts");
@@ -28,6 +29,20 @@ const md = new MarkdownIt({
   linkify: true,
   typographer: true,
 });
+
+// Open links authored in post markdown in a new tab. This applies ONLY to
+// links written in the .md source — the site's own navigation links (back
+// links, theme/post-list links) are built as plain strings elsewhere and
+// stay in the same tab. rel="noopener" is the required security partner for
+// target="_blank" (blocks reverse tabnabbing).
+const defaultLinkOpen =
+  md.renderer.rules.link_open ||
+  ((tokens, idx, options, env, self) => self.renderToken(tokens, idx, options));
+md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+  tokens[idx].attrSet("target", "_blank");
+  tokens[idx].attrSet("rel", "noopener");
+  return defaultLinkOpen(tokens, idx, options, env, self);
+};
 
 // ---------- helpers ----------
 
@@ -64,8 +79,18 @@ function titleCase(slug) {
 }
 
 const MONTH_NAMES = [
-  "january", "february", "march", "april", "may", "june",
-  "july", "august", "september", "october", "november", "december",
+  "january",
+  "february",
+  "march",
+  "april",
+  "may",
+  "june",
+  "july",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
 ];
 
 function ordinal(n) {
@@ -147,9 +172,7 @@ function loadPostsForTheme(themeSlug) {
       );
     }
     if (fm.date == null) {
-      die(
-        `missing 'date' in frontmatter: _posts/${themeSlug}/${entry.name}`,
-      );
+      die(`missing 'date' in frontmatter: _posts/${themeSlug}/${entry.name}`);
     }
     const fmDate = toIsoDate(fm.date);
     if (!fmDate) {
@@ -162,9 +185,7 @@ function loadPostsForTheme(themeSlug) {
         `frontmatter date (${fmDate}) differs from filename date (${filenameDate}) for _posts/${themeSlug}/${entry.name} — using frontmatter`,
       );
     }
-    const tags = Array.isArray(fm.tags)
-      ? fm.tags.map((t) => String(t))
-      : [];
+    const tags = Array.isArray(fm.tags) ? fm.tags.map((t) => String(t)) : [];
     const description =
       typeof fm.description === "string" && fm.description.trim()
         ? fm.description.trim()
@@ -210,12 +231,28 @@ function renderPostBody(post) {
   return md.render(post.bodyMarkdown);
 }
 
+// Format generated HTML with Prettier so committed output is consistent and
+// deterministic. Async because Prettier v3's format() returns a Promise.
+// Options are passed explicitly (no .prettierrc lookup) to keep the build
+// self-contained and reproducible in CI.
+async function formatHtml(html) {
+  return prettier.format(html, { parser: "html" });
+}
+
+function renderTagPills(tags) {
+  if (!tags || tags.length === 0) return "";
+  const pills = tags
+    .map((t) => `<span class="tag">${escapeHtml(t)}</span>`)
+    .join("");
+  return `<span class="tags">${pills}</span>`;
+}
+
 function themeAndTagsLine(post) {
   const themeLink = `<a href="/${post.themeSlug}/">${escapeHtml(
     post.themeDisplay,
   )}</a>`;
   if (post.tags.length === 0) return themeLink;
-  return `${themeLink} · tags: ${post.tags.map(escapeHtml).join(", ")}`;
+  return `${themeLink} · ${renderTagPills(post.tags)}`;
 }
 
 function canonicalUrlForPost(post) {
@@ -249,10 +286,7 @@ function renderThemeListing(template, themeSlug, posts) {
   const items = posts
     .map((p) => {
       const href = `/${p.themeSlug}/${p.filename}`;
-      const tagLine =
-        p.tags.length > 0
-          ? `<br><small>tags: ${p.tags.map(escapeHtml).join(", ")}</small>`
-          : "";
+      const tagLine = p.tags.length > 0 ? `<br>${renderTagPills(p.tags)}` : "";
       const desc = p.description
         ? `<br><small>${escapeHtml(p.description)}</small>`
         : "";
@@ -289,10 +323,7 @@ function renderHomepagePostList(byTheme) {
     const items = posts
       .map((p) => {
         const href = `/${p.themeSlug}/${p.filename}`;
-        const tagLine =
-          p.tags.length > 0
-            ? ` <small>(${p.tags.map(escapeHtml).join(", ")})</small>`
-            : "";
+        const tagLine = p.tags.length > 0 ? ` ${renderTagPills(p.tags)}` : "";
         return (
           `          <li>\n` +
           `            <a href="${escapeAttr(href)}">${escapeHtml(p.title)}</a>` +
@@ -312,7 +343,7 @@ function renderHomepagePostList(byTheme) {
   return sections.join("\n");
 }
 
-function regenerateIndex(byTheme) {
+async function regenerateIndex(byTheme) {
   if (!fs.existsSync(INDEX_PATH)) {
     die(`index.html not found at ${INDEX_PATH}`);
   }
@@ -328,7 +359,7 @@ function regenerateIndex(byTheme) {
   const before = current.slice(0, startIdx + POSTS_START.length);
   const after = current.slice(endIdx);
   const region = `\n${renderHomepagePostList(byTheme)}\n        `;
-  const next = `${before}${region}${after}`;
+  const next = await formatHtml(`${before}${region}${after}`);
   if (next !== current) {
     fs.writeFileSync(INDEX_PATH, next);
   }
@@ -355,11 +386,14 @@ function isGeneratedHtmlDir(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   // Refuse if there are any subdirectories — generated theme dirs are flat.
   if (entries.some((e) => e.isDirectory())) return false;
-  const htmlFiles = entries.filter((e) => e.isFile() && e.name.endsWith(".html"));
+  const htmlFiles = entries.filter(
+    (e) => e.isFile() && e.name.endsWith(".html"),
+  );
   if (htmlFiles.length === 0) return false;
   // All files in the directory must be HTML, and every HTML file must start
   // with the generated marker. Anything else means this is hand-edited.
-  if (entries.some((e) => e.isFile() && !e.name.endsWith(".html"))) return false;
+  if (entries.some((e) => e.isFile() && !e.name.endsWith(".html")))
+    return false;
   return htmlFiles.every((e) => {
     const content = fs.readFileSync(path.join(dir, e.name), "utf8");
     return content.startsWith(GENERATED_MARKER);
@@ -385,14 +419,14 @@ function removeStaleThemeDirs(activeThemes) {
   return removed;
 }
 
-function cleanGeneratedDirs() {
+async function cleanGeneratedDirs() {
   const generated = findGeneratedDirs();
   for (const name of generated) {
     fs.rmSync(path.join(ROOT, name), { recursive: true, force: true });
   }
   // Also reset the index post-list region.
   if (fs.existsSync(INDEX_PATH)) {
-    regenerateIndex(new Map());
+    await regenerateIndex(new Map());
   }
   console.log(
     `clean: removed ${generated.length} generated theme director${generated.length === 1 ? "y" : "ies"}${generated.length ? ` (${generated.join(", ")})` : ""}.`,
@@ -401,7 +435,7 @@ function cleanGeneratedDirs() {
 
 // ---------- main ----------
 
-function build() {
+async function build() {
   if (!fs.existsSync(POST_TEMPLATE_PATH)) {
     die(`missing template: ${POST_TEMPLATE_PATH}`);
   }
@@ -433,7 +467,9 @@ function build() {
       if (!entry.isFile() || !entry.name.endsWith(".html")) continue;
       if (expectedFiles.has(entry.name)) continue;
       const filePath = path.join(outDir, entry.name);
-      const head = fs.readFileSync(filePath, "utf8").slice(0, GENERATED_MARKER.length);
+      const head = fs
+        .readFileSync(filePath, "utf8")
+        .slice(0, GENERATED_MARKER.length);
       if (head === GENERATED_MARKER) {
         fs.unlinkSync(filePath);
       } else {
@@ -441,14 +477,16 @@ function build() {
       }
     }
     for (const post of posts) {
-      const html = renderPost(postTemplate, post);
+      const html = await formatHtml(renderPost(postTemplate, post));
       fs.writeFileSync(path.join(outDir, post.filename), html);
     }
-    const listingHtml = renderThemeListing(themeTemplate, themeSlug, posts);
+    const listingHtml = await formatHtml(
+      renderThemeListing(themeTemplate, themeSlug, posts),
+    );
     fs.writeFileSync(path.join(outDir, "index.html"), listingHtml);
   }
 
-  regenerateIndex(byTheme);
+  await regenerateIndex(byTheme);
 
   const themeCount = byTheme.size;
   console.log(
@@ -463,13 +501,16 @@ function build() {
   }
 }
 
-function main() {
+async function main() {
   const args = process.argv.slice(2);
   if (args.includes("--clean")) {
-    cleanGeneratedDirs();
+    await cleanGeneratedDirs();
     return;
   }
-  build();
+  await build();
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
