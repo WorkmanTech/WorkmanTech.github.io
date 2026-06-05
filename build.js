@@ -137,13 +137,25 @@ function applyTemplate(template, vars) {
 
 // ---------- post discovery ----------
 
+// _posts/drafts/ is a local, gitignored staging area for work-in-progress
+// drafts (e.g. imported from work notes). It is never rendered to the site —
+// a draft gets moved into a real theme folder once it's ready to publish, at
+// which point it starts building normally. Excluding it here keeps the staging
+// area from leaking onto the homepage or generating a public /drafts/ dir.
+const EXCLUDED_THEME_DIRS = new Set(["drafts"]);
+
 function listThemeDirs() {
   if (!fs.existsSync(POSTS_DIR)) return [];
   return fs
     .readdirSync(POSTS_DIR, { withFileTypes: true })
     .filter((e) => e.isDirectory())
     .map((e) => e.name)
-    .filter((name) => !name.startsWith("_") && !name.startsWith("."))
+    .filter(
+      (name) =>
+        !name.startsWith("_") &&
+        !name.startsWith(".") &&
+        !EXCLUDED_THEME_DIRS.has(name),
+    )
     .sort();
 }
 
