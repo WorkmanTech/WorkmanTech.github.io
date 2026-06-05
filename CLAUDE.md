@@ -34,6 +34,10 @@ The published URL will be
 ## Architecture
 
 - `_posts/<theme>/*.md` — markdown sources. Theme = parent folder.
+- `_posts/drafts/` — local, gitignored staging area for work-in-progress drafts.
+  `build.js` skips it (see `EXCLUDED_THEME_DIRS`), so a draft sitting here never
+  renders, never lands on the homepage, and never generates a public `drafts/`
+  directory. Move a draft into a real `_posts/<theme>/` folder to publish it.
 - `_template.html` — per-post template. Carries the full `<head>` (viewport,
   favicons, OG/Twitter meta, canonical link) plus the article body wrapper.
 - `_theme_template.html` — per-theme landing page template.
