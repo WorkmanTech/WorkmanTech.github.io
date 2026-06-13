@@ -298,14 +298,17 @@ function renderThemeListing(template, themeSlug, posts) {
   const items = posts
     .map((p) => {
       const href = `/${p.themeSlug}/${p.filename}`;
-      const tagLine = p.tags.length > 0 ? `<br>${renderTagPills(p.tags)}` : "";
+      const tagLine =
+        p.tags.length > 0 ? `\n            ${renderTagPills(p.tags)}` : "";
       const desc = p.description
-        ? `<br><small>${escapeHtml(p.description)}</small>`
+        ? `\n            <p class="post-desc">${escapeHtml(p.description)}</p>`
         : "";
       return (
-        `          <li>\n` +
-        `            <a href="${escapeAttr(href)}">${escapeHtml(p.title)}</a>` +
-        ` &mdash; <time datetime="${p.date}">${escapeHtml(
+        `          <li class="post-item">\n` +
+        `            <a class="post-title" href="${escapeAttr(href)}">${escapeHtml(
+          p.title,
+        )}</a>\n` +
+        `            <time class="post-date" datetime="${p.date}">${escapeHtml(
           formatDateDisplay(p.date),
         )}</time>${desc}${tagLine}\n` +
         `          </li>`
@@ -315,7 +318,7 @@ function renderThemeListing(template, themeSlug, posts) {
   const postList =
     posts.length === 0
       ? `          <p><em>No posts yet.</em></p>`
-      : `          <ul>\n${items}\n          </ul>`;
+      : `          <ul class="post-list">\n${items}\n          </ul>`;
   return applyTemplate(template, {
     theme_display: escapeHtml(themeDisplay),
     description: escapeAttr(description),
@@ -335,11 +338,14 @@ function renderHomepagePostList(byTheme) {
     const items = posts
       .map((p) => {
         const href = `/${p.themeSlug}/${p.filename}`;
-        const tagLine = p.tags.length > 0 ? ` ${renderTagPills(p.tags)}` : "";
+        const tagLine =
+          p.tags.length > 0 ? `\n            ${renderTagPills(p.tags)}` : "";
         return (
-          `          <li>\n` +
-          `            <a href="${escapeAttr(href)}">${escapeHtml(p.title)}</a>` +
-          ` &mdash; <time datetime="${p.date}">${escapeHtml(
+          `          <li class="post-item">\n` +
+          `            <a class="post-title" href="${escapeAttr(href)}">${escapeHtml(
+            p.title,
+          )}</a>\n` +
+          `            <time class="post-date" datetime="${p.date}">${escapeHtml(
             formatDateDisplay(p.date),
           )}</time>${tagLine}\n` +
           `          </li>`
@@ -347,9 +353,9 @@ function renderHomepagePostList(byTheme) {
       })
       .join("\n");
     return (
-      `        <p><strong><a href="/${themeSlug}/">${escapeHtml(
+      `        <h2 class="post-section-title"><a href="/${themeSlug}/">${escapeHtml(
         themeDisplay,
-      )}</a></strong></p>\n` + `        <ul>\n${items}\n        </ul>`
+      )}</a></h2>\n` + `        <ul class="post-list">\n${items}\n        </ul>`
     );
   });
   return sections.join("\n");
