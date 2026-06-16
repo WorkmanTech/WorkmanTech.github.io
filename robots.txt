@@ -1,0 +1,17 @@
+# workman.tech crawl policy
+# Goal: maximize discoverability, including AI/LLM crawlers. No actual content
+# is disallowed; the Disallow lines just keep crawlers off the build
+# scaffolding that .nojekyll now exposes. Per-bot control (e.g. allow
+# Claude-SearchBot but block ClaudeBot training) can be added later; today
+# every bot is allowed.
+
+User-agent: *
+Allow: /
+Disallow: /_
+Disallow: /build.js
+Disallow: /CLAUDE.md
+Disallow: /README.md
+Disallow: /package.json
+Disallow: /package-lock.json
+
+Sitemap: https://workman.tech/sitemap.xml
