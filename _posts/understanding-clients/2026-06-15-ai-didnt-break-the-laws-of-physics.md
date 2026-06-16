@@ -1,0 +1,48 @@
+---
+title: ai didn't break the laws of physics
+date: 2026-06-15
+description: a six-person engineering department kept a five-year-old revenue product alive while two of us stood up its ai-native replacement, and the lesson wasn't a clever model, it was discipline
+tags: [ai, agentic-development, legacy-systems, team, architecture]
+series: understanding clients in the age of ai
+part: 1
+---
+
+At Table22 we've been pouring time into using the latest LLMs to understand our partners better. On the engineering side, I've been building out our onboarding pipeline, which takes a single business URL and turns it into a full brand identity and a sample offering in a couple of minutes. It captures a partner's voice and tone, their vertical, their target audience, and their key differentiators in less time than it takes me to pour a cup of coffee. Architecting that pipeline has fundamentally shifted how I think about AI, well beyond our own product.
+
+I'm going to write a whole series on that pipeline, and on how the patterns behind each piece have worked their way into my everyday routines. First, though, let's walk the high-level shape of it.
+
+## background
+
+Table22 is a subscription platform for food, beverage, and specialty retail businesses. We handle everything from signup to fulfillment so owners can focus on what they're actually good at, which is giving their guests the best possible experience. The app is legacy. I mean real legacy, compounding decisions since 2021.
+
+Saddled with all that debt but small enough to pivot on a dime, we decided we could rebuild it. Not just the app, though. We decided to rebuild the foundational pillar the whole company runs on. In early spring we pushed the first commit of a new AI-powered, composable, evolving knowledge base, one that could let any Table22 employee become an expert on any partner we work with.
+
+## the goal
+
+There's a Jack Dorsey idea I keep coming back to, the [hub-and-spoke model](https://block.xyz/inside/from-hierarchy-to-intelligence). One person, one set of hands, plugged into several efforts at once, the work radiating out from a small center instead of trickling down a big org chart. We designed the **Entity Knowledge Base Engine** to be that center: a single point of evolving _knowledge_ that any app, AI agent, throwaway experiment, or person could plug into at any time.
+
+The engine's first job was to feed that onboarding pipeline, which had started life as a proof-of-concept stitched together across a handful of SaaS platforms. We had to codify those pieces and rebuild the pipeline as something that could expand and adapt as fast as the ground was moving under us.
+
+And the engine was the linchpin. Get it wrong and the whole pipeline falls over. Make it too rigid and we'd be right back here in a few months, rebuilding from scratch. The values it produced had to generate marketing materials _and_ build a sample offering _and_ extrapolate winning patterns for prospective partners, all from the same structured knowledge. That forced a shift in _how_ we thought about the whole thing. The engine was never going to be a brand-ingestion step. It was going to be the foundation.
+
+## where ai wasn't the magic
+
+This engine is the future of Table22, or at least the bet on it. The whole pivot, the entire reason we took on the monumental job of rebuilding the app, hinged on getting it right. Our entire engineering department is six people, and all of them were already busy keeping the legacy revenue product alive. The first iteration of the engine fell to two of us. I didn't have months. I didn't even have weeks. The deadline was one week. My one teammate on it is genuinely _incredible_, but two people are still two people. AI doesn't break the laws of physics, and it doesn't stop time.
+
+We wrote the proposal assuming each of us would be driving around four AI agents across separate git worktrees at any given time. The math looks incredible on paper. If each agent gives you six to eight times the throughput on routine implementation, four of them is twenty-four to thirty-two times. Rewrite the whole thing by Friday.
+
+We wrote that math down, and then we wrote down why it was a lie
+
+Our honest internal estimate put shipping the full spec in a week at single-digit-percent odds. I literally asked Claude to [crunch those numbers again](https://youtu.be/Xblkk5cEx3U?si=r5OhVqg7WJJuw1Hc&t=225). Sadly, the answer didn't change. The locked architecture was eight to twelve weeks of work for two engineers at an honest pace. Agents compress implementation, and that part is real. What they don't compress is everything that actually gates the work: the architectural decisions, the humans reviewing the code, the SDK integrations, the prompt authoring.
+
+So we did the only thing that actually works under that constraint. We cut scope. We shipped a deliberately minimal version of the loop, and we wrote down everything we left out: twenty-three items of known debt, each one named. All the first version had to do was prove the engine was worth investing in.
+
+That's the actual lesson, and it's the opposite of magic-thinking. AI agents let a tiny team move at a velocity that used to take a whole department. But the move wasn't a clever model. The move was discipline: knowing the bottleneck was integration and judgment rather than typing, and then shrinking the scope to fit that bottleneck instead of pretending it wasn't there.
+
+## where it actually paid off
+
+Before any of this was a product, it was a pile of throwaway prototypes, each one proving a single primitive. A service that took a URL and pulled a brand's voice, logo, and visual tokens out of it. A separate one that generated product pages. A scrappy single-page app that was really just a research spike with a frontend bolted on. Each answered one narrow question: can the AI actually do this specific extraction reliably enough to bet on it. The rebuild didn't invent any of those capabilities. It centralized the ones that had already passed the test.
+
+That's the part I'd push any leader reading this to actually sit with. The reason a six-person engineering department could put AI at the structural core of a rebuild isn't that AI suddenly got easy. It's that we de-risked it in disposable prototypes first, where being wrong was cheap, and only committed to permanent architecture once we knew which primitives held up. The rebuild was the payoff of a dozen small, ugly, fast experiments.
+
+And "at the core" is literal, not a slogan. The engine is a real, separable layer with its own database. Text goes in, structured brand knowledge comes out, versioned, with its history preserved. Other AI surfaces in the app read from it and build on top of it without ever reaching inside. That's not a chatbot stapled to a CRUD app. That's AI as a foundation. How it works, and why we built it as structured knowledge instead of reaching for a vector store, is the next post
