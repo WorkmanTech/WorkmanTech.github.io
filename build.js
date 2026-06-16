@@ -203,6 +203,25 @@ function loadPostsForTheme(themeSlug) {
         ? fm.description.trim()
         : null;
 
+    // Series support: a theme folder is treated as a "series" when every post
+    // in it carries an integer `part`. `series` is the human-readable display
+    // title used for the section heading and landing page. Both are optional;
+    // a theme with no `part` fields keeps the default date-descending behavior.
+    const series =
+      typeof fm.series === "string" && fm.series.trim()
+        ? fm.series.trim()
+        : null;
+    let part = null;
+    if (fm.part != null) {
+      if (typeof fm.part === "number" && Number.isInteger(fm.part)) {
+        part = fm.part;
+      } else {
+        die(
+          `invalid 'part' in frontmatter (expected an integer): _posts/${themeSlug}/${entry.name}`,
+        );
+      }
+    }
+
     posts.push({
       themeSlug,
       themeDisplay: titleCase(themeSlug),
@@ -214,6 +233,8 @@ function loadPostsForTheme(themeSlug) {
       title: fm.title.trim(),
       description,
       tags,
+      series,
+      part,
       bodyMarkdown: parsed.content,
     });
   }
@@ -226,9 +247,27 @@ function collectAllPosts() {
   let total = 0;
   for (const theme of themes) {
     const posts = loadPostsForTheme(theme);
-    posts.sort((a, b) =>
-      a.date < b.date ? 1 : a.date > b.date ? -1 : a.slug.localeCompare(b.slug),
-    );
+    if (isSeriesPosts(posts)) {
+      // A series reads intro-first, so order by part ascending (tiebreak on
+      // date then slug) rather than the newest-first default below.
+      posts.sort(
+        (a, b) =>
+          a.part - b.part ||
+          (a.date < b.date
+            ? -1
+            : a.date > b.date
+              ? 1
+              : a.slug.localeCompare(b.slug)),
+      );
+    } else {
+      posts.sort((a, b) =>
+        a.date < b.date
+          ? 1
+          : a.date > b.date
+            ? -1
+            : a.slug.localeCompare(b.slug),
+      );
+    }
     if (posts.length > 0) {
       byTheme.set(theme, posts);
       total += posts.length;
@@ -275,6 +314,26 @@ function canonicalUrlForTheme(themeSlug) {
   return `${SITE_ORIGIN}/${themeSlug}/`;
 }
 
+// A theme folder is a "series" when every post in it declares an integer part.
+function isSeriesPosts(posts) {
+  return posts.length > 0 && posts.every((p) => p.part != null);
+}
+
+// Section/landing heading for a theme: the series display title when it's a
+// series, otherwise the title-cased folder name.
+function sectionTitleFor(themeSlug, posts) {
+  return isSeriesPosts(posts) && posts[0].series
+    ? posts[0].series
+    : titleCase(themeSlug);
+}
+
+// "Part N" kicker for a post-item, only inside a series listing.
+function partLabel(post, inSeries) {
+  return inSeries && post.part != null
+    ? `\n            <span class="post-part">Part ${post.part}</span>`
+    : "";
+}
+
 function renderPost(template, post) {
   const description = post.description || DEFAULT_DESCRIPTION;
   const content = renderPostBody(post);
@@ -293,18 +352,22 @@ function renderPost(template, post) {
 }
 
 function renderThemeListing(template, themeSlug, posts) {
-  const themeDisplay = titleCase(themeSlug);
-  const description = `${themeDisplay} writing by Ryan Workman`;
+  const inSeries = isSeriesPosts(posts);
+  const heading = sectionTitleFor(themeSlug, posts);
+  const description = inSeries
+    ? `the "${heading}" series by Ryan Workman`
+    : `${heading} writing by Ryan Workman`;
   const items = posts
     .map((p) => {
       const href = `/${p.themeSlug}/${p.filename}`;
+      const partLine = partLabel(p, inSeries);
       const tagLine =
         p.tags.length > 0 ? `\n            ${renderTagPills(p.tags)}` : "";
       const desc = p.description
         ? `\n            <p class="post-desc">${escapeHtml(p.description)}</p>`
         : "";
       return (
-        `          <li class="post-item">\n` +
+        `          <li class="post-item">${partLine}\n` +
         `            <a class="post-title" href="${escapeAttr(href)}">${escapeHtml(
           p.title,
         )}</a>\n` +
@@ -320,7 +383,7 @@ function renderThemeListing(template, themeSlug, posts) {
       ? `          <p><em>No posts yet.</em></p>`
       : `          <ul class="post-list">\n${items}\n          </ul>`;
   return applyTemplate(template, {
-    theme_display: escapeHtml(themeDisplay),
+    theme_display: escapeHtml(heading),
     description: escapeAttr(description),
     canonical_url: escapeAttr(canonicalUrlForTheme(themeSlug)),
     post_list: postList,
@@ -331,17 +394,26 @@ function renderHomepagePostList(byTheme) {
   if (byTheme.size === 0) {
     return `        <p><em>New posts coming soon.</em></p>`;
   }
-  const themeNames = Array.from(byTheme.keys()).sort();
+  // Series sections float above topic themes (a curated reading path outranks a
+  // topic bucket); alphabetical within each group.
+  const themeNames = Array.from(byTheme.keys()).sort((a, b) => {
+    const aSeries = isSeriesPosts(byTheme.get(a));
+    const bSeries = isSeriesPosts(byTheme.get(b));
+    if (aSeries !== bSeries) return aSeries ? -1 : 1;
+    return a.localeCompare(b);
+  });
   const sections = themeNames.map((themeSlug) => {
     const posts = byTheme.get(themeSlug);
-    const themeDisplay = titleCase(themeSlug);
+    const inSeries = isSeriesPosts(posts);
+    const heading = sectionTitleFor(themeSlug, posts);
     const items = posts
       .map((p) => {
         const href = `/${p.themeSlug}/${p.filename}`;
+        const partLine = partLabel(p, inSeries);
         const tagLine =
           p.tags.length > 0 ? `\n            ${renderTagPills(p.tags)}` : "";
         return (
-          `          <li class="post-item">\n` +
+          `          <li class="post-item">${partLine}\n` +
           `            <a class="post-title" href="${escapeAttr(href)}">${escapeHtml(
             p.title,
           )}</a>\n` +
@@ -354,7 +426,7 @@ function renderHomepagePostList(byTheme) {
       .join("\n");
     return (
       `        <h2 class="post-section-title"><a href="/${themeSlug}/">${escapeHtml(
-        themeDisplay,
+        heading,
       )}</a></h2>\n` + `        <ul class="post-list">\n${items}\n        </ul>`
     );
   });
