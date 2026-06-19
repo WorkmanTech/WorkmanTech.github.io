@@ -15,7 +15,7 @@ snap a photo, and get a current price on the rarer ones. No standing there
 flipping through TCGPlayer one card at a time while a line of buyers waits on
 me.
 
-They say necessity is the mother of invention... thus my [Pokémon TCG Catalog](https://pokemontcg.workman.tech) was born.
+They say necessity is the mother of invention... thus my [Pokémon TCG Catalog](https://github.com/WorkmanTech/pokemon-tcg-inventory) was born.
 
 ## a side project, run like a real project
 
